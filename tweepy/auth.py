@@ -2,6 +2,7 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
+import urllib2
 from urllib2 import Request, urlopen
 import base64
 
@@ -40,7 +41,7 @@ class OAuthHandler(AuthHandler):
     OAUTH_HOST = 'api.twitter.com'
     OAUTH_ROOT = '/oauth/'
 
-    def __init__(self, consumer_key, consumer_secret, callback=None, secure=False):
+    def __init__(self, consumer_key, consumer_secret, callback=None, secure=False, proxy=None):
         self._consumer = oauth.OAuthConsumer(consumer_key, consumer_secret)
         self._sigmethod = oauth.OAuthSignatureMethod_HMAC_SHA1()
         self.request_token = None
@@ -48,6 +49,7 @@ class OAuthHandler(AuthHandler):
         self.callback = callback
         self.username = None
         self.secure = secure
+        self.proxy = proxy
 
     def _get_oauth_url(self, endpoint, secure=False):
         if self.secure or secure:
@@ -72,7 +74,14 @@ class OAuthHandler(AuthHandler):
                 self._consumer, http_url=url, callback=self.callback
             )
             request.sign_request(self._sigmethod, self._consumer, None)
-            resp = urlopen(Request(url, headers=request.to_header()))
+            if not self.proxy:
+                resp = urlopen(Request(url, headers=request.to_header()))
+            else:
+                opener = urllib2.build_opener(
+                    urllib2.HTTPHandler(),
+                    urllib2.HTTPSHandler(),
+                    urllib2.ProxyHandler({'https': 'http://'+self.proxy, 'http': 'http://'+self.proxy}))
+                resp = opener.open(urllib2.Request(url, headers=request.to_header()));
             return oauth.OAuthToken.from_string(resp.read())
         except Exception, e:
             raise TweepError(e)
@@ -145,7 +154,7 @@ class OAuthHandler(AuthHandler):
             )
             request.sign_request(self._sigmethod, self._consumer, None)
 
-            resp = urlopen(Request(url, data=request.to_postdata()))
+            resp = urllib2.urlopen(urllib2.Request(url, data=request.to_postdata()))
             self.access_token = oauth.OAuthToken.from_string(resp.read())
             return self.access_token
         except Exception, e:
