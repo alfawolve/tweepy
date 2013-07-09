@@ -18,7 +18,7 @@ class API(object):
             host='api.twitter.com', search_host='search.twitter.com',
              cache=None, secure=True, api_root='/1.1', search_root='',
             retry_count=0, retry_delay=0, retry_errors=None, timeout=60,
-            parser=None, compression=False):
+            parser=None, compression=False, proxy=None):
         self.auth = auth_handler
         self.host = host
         self.search_host = search_host
@@ -37,7 +37,7 @@ class API(object):
     home_timeline = bind_api(
         path = '/statuses/home_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count'],
+        allowed_param = ['since_id', 'max_id', 'count', 'entities'],
         require_auth = True
     )
 
@@ -46,14 +46,14 @@ class API(object):
         path = '/statuses/user_timeline.json',
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'since_id',
-                          'max_id', 'count', 'include_rts']
+                          'max_id', 'count', 'include_rts', 'entities']
     )
 
     """ statuses/mentions """
     mentions_timeline = bind_api(
         path = '/statuses/mentions_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count'],
+        allowed_param = ['since_id', 'max_id', 'count', 'entities'],
         require_auth = True
     )
 
@@ -61,7 +61,7 @@ class API(object):
     retweeted_by = bind_api(
         path = '/statuses/{id}/retweeted_by.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['id', 'count', 'page'],
+        allowed_param = ['id', 'count', 'page', 'entities'],
         require_auth = True
     )
 
