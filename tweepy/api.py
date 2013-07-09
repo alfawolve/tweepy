@@ -32,6 +32,7 @@ class API(object):
         self.retry_errors = retry_errors
         self.timeout = timeout
         self.parser = parser or ModelParser()
+        self.proxy = proxy
 
     """ statuses/home_timeline """
     home_timeline = bind_api(
