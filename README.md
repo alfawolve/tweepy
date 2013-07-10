@@ -29,3 +29,9 @@ Community
   - [Google Group/Mailing list](http://groups.google.com/group/tweepy)
   - IRC Chat (Freenode.net #tweepy)
 
+Proxy Support
+-------------
+To use a proxy, run something like:
+
+    api = tweepy.API(auth, proxy_url="example.com:1234")
+    # Then use Tweepy as you otherwise would
