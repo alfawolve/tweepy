@@ -163,7 +163,6 @@ def bind_api(**config):
                 except Exception, e:
                     raise TweepError('Failed to send request: %s' % e)
 
-                print("RESP IS %s" % resp)
                 # Exit request loop if non-retry error code
                 if self.retry_errors:
                     if resp.code not in self.retry_errors: break
