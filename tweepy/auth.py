@@ -41,7 +41,7 @@ class OAuthHandler(AuthHandler):
     OAUTH_HOST = 'api.twitter.com'
     OAUTH_ROOT = '/oauth/'
 
-    def __init__(self, consumer_key, consumer_secret, callback=None, secure=False, proxy=None):
+    def __init__(self, consumer_key, consumer_secret, callback=None, secure=False, proxy_url=None):
         self._consumer = oauth.OAuthConsumer(consumer_key, consumer_secret)
         self._sigmethod = oauth.OAuthSignatureMethod_HMAC_SHA1()
         self.request_token = None
@@ -49,7 +49,7 @@ class OAuthHandler(AuthHandler):
         self.callback = callback
         self.username = None
         self.secure = secure
-        self.proxy = proxy
+        self.proxy_url = proxy_url
 
     def _get_oauth_url(self, endpoint, secure=False):
         if self.secure or secure:
@@ -74,7 +74,7 @@ class OAuthHandler(AuthHandler):
                 self._consumer, http_url=url, callback=self.callback
             )
             request.sign_request(self._sigmethod, self._consumer, None)
-            if not self.proxy:
+            if not self.proxy_url:
                 resp = urlopen(Request(url, headers=request.to_header()))
             else:
                 opener = urllib2.build_opener(

@@ -131,7 +131,7 @@ def bind_api(**config):
             retries_performed = 0
             while retries_performed < self.retry_count + 1:
                 # Open connection
-                if not self.api.proxy:
+                if not self.api.proxy_url:
                     if self.api.secure:
                         conn = httplib.HTTPSConnection(self.host)
                     else:
@@ -150,26 +150,25 @@ def bind_api(**config):
 
                 # Execute request
                 try:
-                    if not self.api.proxy:
-                        conn.request(self.method, url, headers=self.headers, body=self.post_data)
-                        resp = conn.getresponse()
+                    req = urllib2.Request(url=self.scheme + self.host + url, headers=self.headers, data=self.post_data)
+                    req.get_method = lambda: self.method
+
+                    if self.api.proxy_url:
+                        proxy = urllib2.ProxyHandler({'http': 'http://%s/' % self.api.proxy_url, 'https': 'https://%s/' % self.api.proxy_url})
+                        opener = urllib2.build_opener(proxy)
+                        resp = opener.open(req)
                     else:
-                        opener = urllib2.build_opener(
-                            urllib2.HTTPHandler(),
-                            urllib2.HTTPSHandler(),
-                            urllib2.ProxyHandler({'https': 'http://'+self.api.proxy, 'http': 'http://'+self.api.proxy}))
-                        murl = self.scheme + self.host + url
-                        resp = opener.open(urllib2.Request(murl, self.post_data, headers=self.headers));
-                        resp.status = resp.getcode()
+                        resp = urllib2.urlopen(req)
                         
                 except Exception, e:
                     raise TweepError('Failed to send request: %s' % e)
 
+                print("RESP IS %s" % resp)
                 # Exit request loop if non-retry error code
                 if self.retry_errors:
-                    if resp.status not in self.retry_errors: break
+                    if resp.code not in self.retry_errors: break
                 else:
-                    if resp.status == 200: break
+                    if resp.code == 200: break
 
                 # Sleep before retrying request again
                 time.sleep(self.retry_delay)
@@ -177,16 +176,16 @@ def bind_api(**config):
 
             # If an error was returned, throw an exception
             self.api.last_response = resp
-            if resp.status != 200:
+            if resp.code != 200:
                 try:
                     error_msg = self.api.parser.parse_error(resp.read())
                 except Exception:
-                    error_msg = "Twitter error response: status code = %s" % resp.status
+                    error_msg = "Twitter error response: status code = %s" % resp.code
                 raise TweepError(error_msg, resp)
 
             # Parse the response payload
             body = resp.read()
-            if resp.getheader('Content-Encoding', '') == 'gzip':
+            if 'Content-Encoding: gzip' in resp.headers.headers:
                 try:
                     zipper = gzip.GzipFile(fileobj=StringIO(body))
                     body = zipper.read()
@@ -194,7 +193,7 @@ def bind_api(**config):
                     raise TweepError('Failed to decompress data: %s' % e)
             result = self.api.parser.parse(self, body)
 
-            if not self.api.proxy:
+            if not self.api.proxy_url:
                 conn.close()
 
             # Store result into cache if one is available.
