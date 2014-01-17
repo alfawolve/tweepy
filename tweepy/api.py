@@ -38,7 +38,7 @@ class API(object):
     home_timeline = bind_api(
         path = '/statuses/home_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'entities'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -47,22 +47,14 @@ class API(object):
         path = '/statuses/user_timeline.json',
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'since_id',
-                          'max_id', 'count', 'include_rts', 'entities']
+                          'max_id', 'count', 'include_rts']
     )
 
     """ statuses/mentions """
     mentions_timeline = bind_api(
         path = '/statuses/mentions_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'entities'],
-        require_auth = True
-    )
-
-    """/statuses/:id/retweeted_by.format"""
-    retweeted_by = bind_api(
-        path = '/statuses/{id}/retweeted_by.json',
-        payload_type = 'status', payload_list = True,
-        allowed_param = ['id', 'count', 'page', 'entities'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -72,14 +64,6 @@ class API(object):
         payload_type = 'relation', payload_list = True,
         allowed_param = ['id'],
         require_auth = False
-    )
-
-    """/statuses/:id/retweeted_by/ids.format"""
-    retweeted_by_ids = bind_api(
-        path = '/statuses/{id}/retweeted_by/ids.json',
-        payload_type = 'ids',
-        allowed_param = ['id', 'count', 'page'],
-        require_auth = True
     )
 
     """ statuses/retweets_of_me """
@@ -106,6 +90,22 @@ class API(object):
         require_auth = True
     )
 
+    """ statuses/update_with_media """
+    def update_with_media(self, filename, *args, **kwargs):
+        headers, post_data = API._pack_image(filename, 3072, form_field='media[]')
+        kwargs.update({'headers': headers, 'post_data': post_data})
+
+        return bind_api(
+            path='/statuses/update_with_media.json',
+            method = 'POST',
+            payload_type='status',
+            allowed_param = [
+                'status', 'possibly_sensitive', 'in_reply_to_status_id', 'lat', 'long',
+                'place_id', 'display_coordinates'
+            ],
+            require_auth=True
+        )(self, *args, **kwargs)
+
     """ statuses/destroy """
     destroy_status = bind_api(
         path = '/statuses/destroy/{id}.json',
@@ -130,6 +130,12 @@ class API(object):
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'count'],
         require_auth = True
+    )
+
+    retweeters = bind_api(
+        path = '/statuses/retweeters/ids.json',
+        payload_type = 'ids',
+        allowed_param = ['id', 'cursor', 'stringify_ids']
     )
 
     """ users/show """
@@ -311,7 +317,8 @@ class API(object):
     followers = bind_api(
         path = '/followers/list.json',
         payload_type = 'user', payload_list = True,
-        allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
+        allowed_param = ['id', 'user_id', 'screen_name', 'cursor', 'count',
+            'skip_status', 'include_user_entities']
     )
 
     """ account/verify_credentials """
@@ -376,6 +383,17 @@ class API(object):
             allowed_param = ['tile'],
             require_auth = True
         )(self, post_data=post_data, headers=headers)
+
+    """ account/update_profile_banner """
+    def update_profile_banner(self, filename, *args, **kargs):
+        headers, post_data = API._pack_image(filename, 700, form_field="banner")
+        bind_api(
+            path = '/account/update_profile_banner.json',
+            method = 'POST',
+            allowed_param = ['width', 'height', 'offset_left', 'offset_right'],
+            require_auth = True
+        )(self, post_data=post_data, headers=headers)
+
 
     """ account/update_profile """
     update_profile = bind_api(
@@ -486,16 +504,6 @@ class API(object):
         require_auth = True
     )
 
-    """ help/test """
-    def test(self):
-        try:
-            bind_api(
-                path = '/help/test.json',
-            )(self)
-        except TweepError:
-            return False
-        return True
-
     create_list = bind_api(
         path = '/lists/create.json',
         method = 'POST',
@@ -544,7 +552,7 @@ class API(object):
     list_timeline = bind_api(
         path = '/lists/statuses.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['owner_screen_name', 'slug', 'owner_id', 'list_id', 'since_id', 'max_id', 'count']
+        allowed_param = ['owner_screen_name', 'slug', 'owner_id', 'list_id', 'since_id', 'max_id', 'count', 'include_rts']
     )
 
     get_list = bind_api(
@@ -631,7 +639,7 @@ class API(object):
     search = bind_api(
         path = '/search/tweets.json',
         payload_type = 'search_results',
-        allowed_param = ['q', 'lang', 'locale', 'since_id', 'geocode', 'show_user', 'max_id', 'since', 'until', 'result_type']
+        allowed_param = ['q', 'lang', 'locale', 'since_id', 'geocode', 'max_id', 'since', 'until', 'result_type', 'count', 'include_entities', 'from', 'to', 'source']
     )
 
     """ trends/daily """
@@ -676,9 +684,23 @@ class API(object):
         allowed_param = ['lat', 'long', 'name', 'contained_within']
     )
 
+    """ help/languages.json """
+    supported_languages = bind_api(
+        path = '/help/languages.json',
+        payload_type = 'json',
+        require_auth = True
+    )
+
+    """ help/configuration """
+    configuration = bind_api(
+        path = '/help/configuration.json',
+        payload_type = 'json',
+        require_auth = True
+    )
+
     """ Internal use only """
     @staticmethod
-    def _pack_image(filename, max_size):
+    def _pack_image(filename, max_size, form_field="image"):
         """Pack image from file into multipart-formdata post body"""
         # image must be less than 700kb in size
         try:
@@ -700,7 +722,7 @@ class API(object):
         BOUNDARY = 'Tw3ePy'
         body = []
         body.append('--' + BOUNDARY)
-        body.append('Content-Disposition: form-data; name="image"; filename="%s"' % filename)
+        body.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (form_field, filename))
         body.append('Content-Type: %s' % file_type)
         body.append('')
         body.append(fp.read())

@@ -105,6 +105,8 @@ def bind_api(**config):
                 self.path = self.path.replace(variable, value)
 
         def execute(self):
+            self.api.cached_result = False
+
             # Build the request URL
             url = self.api_root + self.path
             if len(self.parameters):
@@ -124,6 +126,7 @@ def bind_api(**config):
                     else:
                         if isinstance(cache_result, Model):
                             cache_result._api = self.api
+                    self.api.cached_result = True
                     return cache_result
 
             # Continue attempting request until successful
@@ -175,7 +178,7 @@ def bind_api(**config):
 
             # If an error was returned, throw an exception
             self.api.last_response = resp
-            if resp.code != 200:
+            if resp.code and not 200 <= resp.code < 300:
                 try:
                     error_msg = self.api.parser.parse_error(resp.read())
                 except Exception:

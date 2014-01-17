@@ -22,19 +22,6 @@ class AuthHandler(object):
         raise NotImplementedError
 
 
-class BasicAuthHandler(AuthHandler):
-
-    def __init__(self, username, password):
-        self.username = username
-        self._b64up = base64.b64encode('%s:%s' % (username, password))
-
-    def apply_auth(self, url, method, headers, parameters):
-        headers['Authorization'] = 'Basic %s' % self._b64up
-
-    def get_username(self):
-        return self.username
-
-
 class OAuthHandler(AuthHandler):
     """OAuth authentication handler"""
 
@@ -42,6 +29,12 @@ class OAuthHandler(AuthHandler):
     OAUTH_ROOT = '/oauth/'
 
     def __init__(self, consumer_key, consumer_secret, callback=None, secure=False, proxy_url=None):
+        if type(consumer_key) == unicode:
+            consumer_key = bytes(consumer_key)
+
+        if type(consumer_secret) == unicode:
+            consumer_secret = bytes(consumer_secret)
+
         self._consumer = oauth.OAuthConsumer(consumer_key, consumer_secret)
         self._sigmethod = oauth.OAuthSignatureMethod_HMAC_SHA1()
         self.request_token = None
@@ -81,7 +74,7 @@ class OAuthHandler(AuthHandler):
                     urllib2.HTTPHandler(),
                     urllib2.HTTPSHandler(),
                     urllib2.ProxyHandler({'https': 'http://'+self.proxy, 'http': 'http://'+self.proxy}))
-                resp = opener.open(urllib2.Request(url, headers=request.to_header()));
+                resp = opener.open(Request(url, headers=request.to_header()));
             return oauth.OAuthToken.from_string(resp.read())
         except Exception, e:
             raise TweepError(e)
@@ -154,7 +147,7 @@ class OAuthHandler(AuthHandler):
             )
             request.sign_request(self._sigmethod, self._consumer, None)
 
-            resp = urllib2.urlopen(urllib2.Request(url, data=request.to_postdata()))
+            resp = urlopen(Request(url, data=request.to_postdata()))
             self.access_token = oauth.OAuthToken.from_string(resp.read())
             return self.access_token
         except Exception, e:
